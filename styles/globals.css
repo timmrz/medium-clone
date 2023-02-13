@@ -1,3 +1,15 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+.portable-text img {
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    margin: 28px 0;
+}
+
+.side-bar {
+    height: calc(100vh - 89px);
+}

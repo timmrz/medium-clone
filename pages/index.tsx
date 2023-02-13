@@ -1,86 +1,120 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import FollowTo from '../components/FollowTo'
+import Header from '../components/Header'
+import MainSection from '../components/MainSeaction'
+import PreviewPost from '../components/PreviewPost'
 
-const Home: NextPage = () => {
+import RecommendedTopics from '../components/RecommendedTopics'
+import SideBar from '../components/SideBar'
+import { sanityClient, urlFor } from '../sanity'
+import { IPost, ICategory, IAuthor } from '../types'
+
+interface IProps {
+  posts: [IPost];
+  categories: [ICategory]
+  authors: [IAuthor]
+}
+
+
+
+const Home = ( { posts, categories, authors }: IProps ) => {
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-2">
+    <div>
       <Head>
-        <title>Create Next App</title>
+        <title>Medium 2.0</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="flex w-full flex-1 flex-col items-center justify-center px-20 text-center">
-        <h1 className="text-6xl font-bold">
-          Welcome to{' '}
-          <a className="text-blue-600" href="https://nextjs.org">
-            Next.js!
-          </a>
-        </h1>
+      <Header />
+      <MainSection />
 
-        <p className="mt-3 text-2xl">
-          Get started by editing{' '}
-          <code className="rounded-md bg-gray-100 p-3 font-mono text-lg">
-            pages/index.tsx
-          </code>
-        </p>
+      <div className='flex flex-row-reverse'>
 
-        <div className="mt-6 flex max-w-4xl flex-wrap items-center justify-around sm:w-full">
-          <a
-            href="https://nextjs.org/docs"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Documentation &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Find in-depth information about Next.js features and its API.
-            </p>
-          </a>
 
-          <a
-            href="https://nextjs.org/learn"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Learn &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Learn about Next.js in an interactive course with quizzes!
-            </p>
-          </a>
+        <SideBar>
 
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Examples &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Discover and deploy boilerplate example Next.js projects.
-            </p>
-          </a>
+          <RecommendedTopics categories={categories} />
 
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Deploy &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+          <FollowTo authors={authors} />
+        </SideBar>
+
+
+        <div className='pt-14 max-w-[1192px] mx-auto px-4'>
+
+          {posts.map( post => (
+            // <Link legacyBehavior key={post._id} href={`/posts/${ post.slug.current }`}>
+            //   {/* <PreviewPost post={post} href={`/posts/${ post.slug.current }`} /> */}
+            //   <PreviewPost href={`/posts/${ post.slug.current }`} post={post} />
+            // </Link>
+
+            <PreviewPost post={post} key={post._id} />
+
+          ) )}
+
         </div>
-      </main>
 
-      <footer className="flex h-24 w-full items-center justify-center border-t">
-        <a
-          className="flex items-center justify-center gap-2"
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-        </a>
-      </footer>
+      </div>
+
     </div>
   )
 }
 
 export default Home
+
+export const getServerSideProps = async () => {
+  const queryPosts = `
+  *[_type == "post"] {
+    _id,
+      title,
+      slug,
+      author -> {
+      name,
+      image,
+      slug
+    },
+    mainImage,
+    description,
+    body[0].style == 'normal' => {
+      body[0]
+      },
+    publishedAt,
+    categories[0]-> {title, slug}
+    }`
+
+  const queryAuthors = `
+  *[_type == "author"][0...4]{
+    _id,
+  bio,
+  name,
+  slug,
+  image
+    }
+  
+    `
+
+  const queryCategories = `
+    *[_type == "category"]  {
+      _id,
+        title,
+        slug
+      }
+    `
+
+  const categories = await sanityClient.fetch( queryCategories )
+  const posts = await sanityClient.fetch( queryPosts );
+  const authors = await sanityClient.fetch( queryAuthors );
+
+  return {
+    props: {
+      posts,
+      categories,
+      authors
+
+    }
+  }
+}
